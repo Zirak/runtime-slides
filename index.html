@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+  <head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>Looking under the hood: JavaScript Engines</title>
+
+	<link rel="stylesheet" href="dist/reset.css">
+	<link rel="stylesheet" href="dist/reveal.css">
+	<link rel="stylesheet" href="dist/theme/solarized.css">
+
+	<!-- Theme used for syntax highlighted code -->
+	<link rel="stylesheet" href="plugin/highlight/nord.css">
+  </head>
+  <body>
+	<div class="reveal">
+	  <div class="slides">
+        <section>
+          <h1>Looking under the hood: JavScript Engines</h1>
+        </section>
+
+        <section>
+          <h3>whoami</h3>
+          <div style="float:right">
+            <img src="images/awesome.png" width="256" height="256" />
+            <br/>
+            <img src="images/qr.svg" width="256" height="256" />
+          </div>
+          <ul>
+            <li>Zirak</li>
+            <li>I like JS</li>
+            <li><a href="https://zirak.me">https://zirak.me</a></li>
+            <p>&nbsp;</p>
+            <li>Did I forget to record my screen?</li>
+            <li>But enough about me</li>
+          </ul>
+        </section>
+
+        <section data-markdown data-separator-vertical="==="><script type="text/template">
+
+### What are we talking about today?
+
+- What's a javascript engine
+- What does it do
+- How's it implemented: Strict mode
+- Let's break strict mode
+
+---
+
+### What's in a browser?
+
+===
+
+### What's in a browser?
+
+<img data-src="./images/browsers-1.png" />
+
+===
+
+### What's in a browser?
+
+<img data-src="./images/browsers-2.png" />
+
+===
+
+### What's in a browser?
+
+<img data-src="./images/browsers-3.png" />
+
+===
+
+### What's in a browser?
+
+<img data-src="./images/browsers-4.png" />
+
+===
+
+### What's in a browser?
+
+<img data-src="./images/browsers-5.png" />
+
+===
+
+### What's in a browser?
+
+<img data-src="./images/browsers-6.png" />
+
+---
+
+### Where can I find them?
+
+(Far from an exhaustive list)
+
+- Browsers - [Chromium](https://www.chromium.org/Home/) & [friends](https://en.wikipedia.org/wiki/Chromium_(web_browser)#Browsers_based_on_Chromium), [Firefox](https://www.mozilla.org/en-US/firefox/), [Safari](https://www.apple.com/safari/), [Ladybird](https://ladybird.org/)
+- Servers - nodejs, bun, deno XXX
+- IoT - [Espruino](https://github.com/espruino/Espruino), johnny-five XXX, [jerryscript](https://github.com/jerryscript-project/jerryscript)
+- Edge/Serverless - [Cloudflare Workers](https://developers.cloudflare.com/workers/reference/how-workers-works/), [Deno Deploy](https://deno.com/deploy), [Fastly Edge](https://www.fastly.com/products/edge-compute))
+- All up in your business - [Nashorn](https://github.com/openjdk/nashorn), [Ductape](https://duktape.org/)
+
+---
+
+### What is it?
+
+```js
+const arr = [{ foo: 4 }]
+
+arr.map(
+  (item) => item.foo
+);
+```
+
+===
+
+### Parsing
+
+```js
+const arr = [{ foo: 4 }]
+
+arr.map(
+  (item) => item.foo
+);
+```
+
+- Humans say gibberish, parser is the adult that makes sense of them
+- [astexplorer](https://astexplorer.net/)
+
+===
+
+### Runtime
+
+```js
+const arr = [{ foo: 4 }]
+
+arr.map(
+  (item) => item.foo
+);
+```
+
+- What does it mean to create an array?
+- What does it mean to call a function?
+- What does `map` do?
+
+===
+
+### ECMAScript / TC39
+
+- The language specification
+- Syntax example: https://tc39.es/ecma262/#sec-for-in-and-for-of-statements
+- Runtime example: https://tc39.es/ecma262/#sec-array.prototype.map
+- Dr. Axel Rauschmayer has [a blog detailing these and more](https://2ality.com/index.html)
+
+---
+
+### Diving in: [Strict mode](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode)
+
+- New in ES5 (15 years old!)
+- Only real set of deprecations in JavaScript
+- Erases a set of language mistakes and common footguns
+- You're most likely using it today without even knowing
+
+===
+
+### Parsing example: [Deleting variables](https://tc39.es/ecma262/#sec-delete-operator)
+
+```js [0-6|8-14]
+(() => {
+  window.foo = 4;
+  console.log(foo);
+  delete foo;
+  console.log(typeof foo);
+})();
+
+(() => {
+  "use strict"; // real syntax
+  window.foo = 4;
+  console.log(foo);
+  delete foo;
+  console.log(typeof foo);
+})();
+```
+
+===
+
+### Runtime example: [Setting a getter-only](https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-ordinarysetwithowndescriptor)
+
+```js [1-9|11-19]
+(() => {
+  "use sloppy";
+  const obj = {
+    get foo() { return 4 },
+  };
+  console.log(obj.foo);
+  obj.foo = 7;
+  console.log(obj.foo);
+})();
+
+(() => {
+  "use strict";
+  const obj = {
+    get foo() { return 4 },
+  };
+  console.log(obj.foo);
+  obj.foo = 7;
+  console.log(obj.foo);
+})();
+```
+
+===
+
+### [Where else?](https://tc39.es/ecma262/multipage/ecmascript-language-source-code.html#sec-strict-mode-code)
+
+- Modules
+- Classes
+
+```js
+new class {
+  constructor() {
+    const obj = {
+      get foo() { return 4 },
+    };
+    obj.foo = 7;
+  }
+}
+```
+
+---
+
+### Flashlights out!
+
+- Let's look at the implementation
+- https://searchfox.org/
+- https://source.chromium.org/chromium
+
+===
+
+### Do you want to build a spidermonkey?
+
+- [Firefox guide](https://firefox-source-docs.mozilla.org/js/build.html)
+
+```
+./mach build
+./mach run
+```
+
+```js
+(() => { "use strict"; globalThis.foo = 4; delete foo; console.log(typeof foo) })();
+```
+
+===
+
+### Parsing
+
+> operator to an unqualified name is deprecated
+
+- [Error message definition](https://searchfox.org/mozilla-central/search?q=operator+to+an+unqualified+name+is+deprecated&path=&case=false&regexp=false)
+- [Search for error usage](https://searchfox.org/mozilla-central/search?q=JSMSG_DEPRECATED_DELETE_OPERAND&redirect=false)
+- [Only real result](https://searchfox.org/mozilla-central/rev/f9517009d8a4946dbdd3acd72a31dc34fca79586/js/src/frontend/Parser.cpp#10745)
+- [Weird middle-man](https://searchfox.org/mozilla-central/rev/f9517009d8a4946dbdd3acd72a31dc34fca79586/js/src/frontend/ErrorReporter.h#245)
+- [Weird middle-man](https://searchfox.org/mozilla-central/rev/f9517009d8a4946dbdd3acd72a31dc34fca79586/js/src/frontend/ErrorReporter.h#294)
+- [strictMode, how are you defined?](https://searchfox.org/mozilla-central/rev/f9517009d8a4946dbdd3acd72a31dc34fca79586/js/src/frontend/Parser.h#350)
+- [We're finally here!](https://searchfox.org/mozilla-central/rev/f9517009d8a4946dbdd3acd72a31dc34fca79586/js/src/frontend/SharedContext.h#272)
+
+===
+
+### Let's compile that out
+
+```diff
+diff --git a/js/src/frontend/SharedContext.h b/js/src/frontend/SharedContext.h
+index cdedfec08a984..0389ffdaa76fe 100644
+--- a/js/src/frontend/SharedContext.h
++++ b/js/src/frontend/SharedContext.h
+@@ -269,7 +269,7 @@ class SharedContext {
+   // localStrict flag indicates the current region (such as class body) should
+   // be treated as strict. The localStrict flag will always be reset to false
+   // before the end of the script.
+-  bool strict() const { return hasFlag(ImmutableFlags::Strict) || localStrict; }
++  bool strict() const { return false; }
+   void setStrictScript() { setFlag(ImmutableFlags::Strict); }
+   bool setLocalStrictMode(bool strict) {
+     bool retVal = localStrict;
+```
+
+===
+
+```
+./mach build
+./mach run
+```
+
+```js
+(() => { "use strict"; globalThis.foo = 4; delete foo; console.log(typeof foo) })();
+```
+
+===
+
+### Where else is it used?
+
+- [Search results in searchfox](https://searchfox.org/mozilla-central/search?q=symbol:_ZNK2js8frontend13SharedContext6strictEv&redirect=false)
+
+---
+
+### Where did we do today?
+
+- Went over engine fundamentals
+- Saw how an engine behaves under the hood
+- Learned to release our fear of the mortal realm
+
+        </script></section>
+
+    <section>
+      <h1>Until next time!</h1>
+      <div style="float:right">
+        <br/>
+        <img src="images/qr.svg" width="256" height="256" />
+      </div>
+      <p><a href="https://zirak.me">zirak.me</a></p>
+      <p>ben@miggo.io</p>
+      <p><a href="https://github.com/Zirak/runtime-slides">These slides</a></p>
+    </section>
+	  </div>
+	</div>
+
+	<script src="dist/reveal.js"></script>
+	<script src="plugin/markdown/markdown.js"></script>
+	<script src="plugin/highlight/highlight.js"></script>
+	<script>
+	  // More info about initialization & config:
+	  // - https://revealjs.com/initialization/
+	  // - https://revealjs.com/config/
+	  Reveal.initialize({
+		  hash: true,
+
+		  // Learn about plugins: https://revealjs.com/plugins/
+		  plugins: [ RevealMarkdown, RevealHighlight ]
+	  });
+	</script>
+  </body>
+</html>
